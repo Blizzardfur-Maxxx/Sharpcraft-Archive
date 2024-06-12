@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+		<ItemGroup>
+			<InputAssemblies Include="$(OutputPath)$(TargetName)$(TargetExt)"/>
+			<InputAssemblies Include="$(OutputPath)*.dll"/>
+			<InputAssemblies Remove="@(InputAssemblies)" Condition="'%(Filename)%(Extension)' == '@(MergeExcludes)'"/>
+		</ItemGroup>
+
+		<ILRepack
+            Parallel="true"
+            DebugInfo="true"
+            AllowDuplicateResources="false"
+            InputAssemblies="@(InputAssemblies)"
+            TargetKind="SameAsPrimaryAssembly"
+            KeyFile="$(KeyFile)"
+            OutputFile="$(OutputPath)$(TargetName)$(TargetExt)"
+        />
+    </Target>
+	<Target Name="CleanMergedLibs" AfterTargets="ILRepacker" Condition="'$(Configuration)' == 'Release'">
+		<ItemGroup>
+			<CleanExcludes Include="OpenAL.dll"/>
+			<CleanExcludes Include="@(MergeExcludes)"/>
+		</ItemGroup>
+		
+		<ItemGroup>
+			<MergedLibs Include="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')"/>
+			<MergedLibs Remove="@(MergedLibs)" Condition="'%(Filename)%(Extension)' == '@(CleanExcludes)'"/>
+		</ItemGroup>
+
+		<Delete Files="@(MergedLibs)"/>
+		<ItemGroup>
+			<Directories Include="$([System.IO.Directory]::GetDirectories('$(OutDir)%(DestinationSubDirectory)', '*', System.IO.SearchOption.AllDirectories))"/>
+			<Directories>
+				<Files>$([System.IO.Directory]::GetFiles("%(Directories.Identity)", "*", System.IO.SearchOption.AllDirectories).get_Length())</Files>
+			</Directories>
+		</ItemGroup>
+		<RemoveDir Directories="@(Directories)" Condition="%(Files)=='0'"/>
+	</Target>
+</Project>
